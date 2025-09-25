@@ -8,7 +8,7 @@ One can use `python -r requirements_pip.txt` to install packages with pip or use
 
 ## Library py_aff3ct
 
-This project uses the py_aff3ct library to implement polar codec. To compile the library, follow the instructions in [py_aff3ct Readme file](https://github.com/Shen-Cao/py_aff3ct/blob/master/README.md).
+This project uses the py_aff3ct library to implement polar codec. You may use `git submodule update --init --recursive` to initialize and update all submodules. To compile the library, follow the instructions in [py_aff3ct Readme file](https://github.com/Shen-Cao/py_aff3ct/blob/master/README.md).
 
 > Remark: One may meet error of `uint_8 does not name a type` during compilation (e.g. WSL2-Ubuntu-22.04, gcc 15.1.0, gxx 15.1.0). A simple solution is to add `#include <stdint.h>` to the begining of reported file(s).
 
