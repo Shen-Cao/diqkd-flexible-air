@@ -4,7 +4,11 @@ Information reconciliation (IR) for device-independent quantum key distribution 
 
 ## Environment Configuration
 
-One can use `python -r requirements_pip.txt` to install packages with pip or use `conda install --yes --file requirements_conda.txt` to install packages in a conda virtual environment. The latter is recommended because it contains the version of python and C++ compliers (gcc and gxx 15.1.0) that are verified to successfully compile the py_aff3ct library.
+One can use `pip install -r requirements_pip.txt` to install packages with pip or use `conda install --yes --file requirements_conda.txt` to install packages in a conda virtual environment. The latter is recommended because it contains the version of python and C++ compliers (gcc and gxx 15.1.0) that are verified to successfully compile the py_aff3ct library.
+
+> It is possible that conda cannot install the required packages from the file even in a completely new environment.
+> In this case, you can try installing GCC and G++ first `conda install -c conda-forge gcc=15.1.0 gxx=15.1.0`.
+Then install python `conda install python=3.11.13` and lastly `pip install -r requirements_pip.txt`
 
 ## Library py_aff3ct
 
