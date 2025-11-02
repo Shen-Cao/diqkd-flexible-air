@@ -20,6 +20,8 @@ This project uses the py_aff3ct library to implement polar codec. You may use `g
 
 `docs` contains jupyter notebooks of certain IR realization.
 
+> Current implementation within one jupyter notebook is rather bloated, subsequent updates will refine the functionality.
+
 `src` contains python source codes.
 
 `conf` stores configuration files such as polar code frozen vectors and LDPC code matrix.
