@@ -1,0 +1,328 @@
+********************************
+Reconciliation of real sifted KEY data
+This log file collects the operation records in information reconciliation and error verification of Alice and Bob, respectively.
+The operations performed on the two parts are labeled by "Alice :" and "Bob :" respectively
+Remark: The statistical QBER is only for calculating the efficiency in this demo, which is manually set
+        Alice and Bob will only read their own KEY
+
+
+********************************
+Real Quantum Bit Error Rate (QBER) from dataset: 0.03597984449309278
+********************************
+Configured QBER: 0.0375
+********************************
+Deviation between assumed QBER and statistical QBER: 0.0015201555069072198
+********************************
+Statistical Qubit Error Rate: 0.03597984449309278 -> H_2 = 0.2235460591884705
+----> Estimated Quantum Channel Leaked Bits (L * H_2(QBER)): 23690.51716855735
+----> Real Reconciliation Efficiency = Number of Leaked Bits / 23690.51716855735
+
+
+********************************
+Preparation Phase: The following information and parameters are pre-shared
+--------------------------------
+Length of Sifted KEY: 105976 
+Length of Polar Codes: 131072
+----> Number of Shortened Bits: 25096
+Configured Qubit Error Rate: 0.0375 -> H_2 = 0.2307099556914764
+----> Estimated Least Polar Code Frozen Bits (L * H_2(Assumed_QBER)): 24449.718264359904
+----> Estimated Reconciliation Efficiency = Number of Leaked Bits / 24449.718264359904
+--------------------------------
+Configured Efficiency stages: [1.08  1.082 1.084 1.086 1.088 1.09  1.092 1.094 1.096 1.098 1.1  ]
+--------------------------------
+Effecctive Efficiency Stages (without CRC tag): [1.07866274 1.08066685 1.08267096 1.08467508 1.08667919 1.0886833
+ 1.09068741 1.09265063 1.09465474 1.09665885 1.09866297]
+Assumed Number of bits leaked by CRC Tag: 32. Efficiency gain: 0.0013088085373419644
+----> Effective Efficiency Stages: [1.07997154 1.08197566 1.08397977 1.08598388 1.087988   1.08999211
+ 1.09199622 1.09395944 1.09596355 1.09796766 1.09997178]
+--------------------------------
+Enc-Dec Effective Information Bits Stages: [79603 79554 79505 79456 79407 79358 79309 79261 79212 79163 79114]
+Enc-Dec Effective Frozen Bits Stages:      [26373 26422 26471 26520 26569 26618 26667 26715 26764 26813 26862]
+--------------------------------
+
+
+
+
+Number of Total Frozen Bits of Each Stage: [51469, 51518, 51567, 51616, 51665, 51714, 51763, 51811, 51860, 51909, 51958]
+Number of Effective Frozen Bits of Each Stage: [26373, 26422, 26471, 26520, 26569, 26618, 26667, 26715, 26764, 26813, 26862]
+
+
+Server started at http://10.64.86.101:8003
+# # # # # # # # # # # # # # # # 
+(0:00:08.167304) Reconciliation Phase
+The operations performed on the two parts are labeled by "Alice :" and "Bob :" respectively
+All communications are transmitted via classical public noiseless channel
+# # # # # # # # # # # # # # # # 
+
+
+Bob  : Wait for Alice starting the reconciliation phase
+Bob  : Start the reconciliation phase
+
+
+(0:00:12.373438) Bob  : Pad sifted KEY
+Bob  : Length: 105976 to 131072
+Bob  : Padded sifted KEY: [[1 1 0 ... 0 0 0]]
+
+
+(0:00:12.374811) Bob  : Calculate LLR of padded KEY
+Bob  : LLR of padded KEY: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932  3.2451932]]
+(0:00:12.375492) Bob  : Shorten the LLR vector
+Bob  : Shortened LLR vector: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+
+
+********
+(0:00:12.375953) TRANSMISSION: Alice to Bob
+Bob: Waiting for CRC tag from Alice...
+[[1 1 0 1 0 1 1 0 1 1 0 0 0 1 1 1 0 1 1 0 0 1 1 1 0 0 0 1 1 1 0 1]]
+32 bits of CRC tag
+Total 32 bits has been made public
+********
+
+
+Bob  : Receive 32 bits of CRC tag
+(0:00:17.883692) Bob  : Set CRC tag for verification
+
+
+----------------
+(0:00:22.884107) Stage 1 of appending reconciliation
+----------------
+
+
+********
+(0:00:22.884160) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[1 0 1 ... 1 1 1]]
+26373 bits of appended frozen bits
+Total 26405 bits has been made public
+********
+
+
+(0:00:28.992535) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26406 bits has been made public
+********
+
+
+(0:00:40.362575) Bob  : CRC check indicates failure of reconciliation
+Reconciliation FAILED at stage 1
+Total leaked bits: 26406
+Assumed Effective Efficiency: 1.0800124449078723
+Real Efficiency: 1.1146231976331318
+
+
+----------------
+(0:00:40.362666) Stage 2 of appending reconciliation
+----------------
+
+
+********
+(0:00:40.362708) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[1 0 1 0 1 1 0 0 0 0 1 0 0 0 1 1 1 0 0 0 0 1 1 1 0 1 1 1 1 1 1 0 0 1 1 1
+  1 0 0 1 0 1 1 1 1 0 1 1 1]]
+49 bits of appended frozen bits
+Total 26455 bits has been made public
+********
+
+
+(0:00:46.069500) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26456 bits has been made public
+********
+
+
+(0:00:57.126975) Bob  : CRC check indicates failure of reconciliation
+Reconciliation FAILED at stage 2
+Total leaked bits: 26456
+Assumed Effective Efficiency: 1.0820574582474691
+Real Efficiency: 1.1167337467462748
+
+
+----------------
+(0:00:57.127067) Stage 3 of appending reconciliation
+----------------
+
+
+********
+(0:00:57.127107) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[0 0 1 0 0 1 1 0 0 1 0 1 0 1 0 0 1 0 0 1 1 1 1 1 0 1 0 1 1 0 1 1 1 1 1 0
+  0 1 1 1 1 1 0 1 1 0 1 0 1]]
+49 bits of appended frozen bits
+Total 26505 bits has been made public
+********
+
+
+(0:01:02.735359) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26506 bits has been made public
+********
+
+
+(0:01:13.765695) Bob  : CRC check indicates failure of reconciliation
+Reconciliation FAILED at stage 3
+Total leaked bits: 26506
+Assumed Effective Efficiency: 1.084102471587066
+Real Efficiency: 1.1188442958594178
+
+
+----------------
+(0:01:13.765791) Stage 4 of appending reconciliation
+----------------
+
+
+********
+(0:01:13.765829) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[0 1 1 0 1 0 1 1 0 0 1 1 0 0 1 1 1 1 0 0 1 1 1 0 0 0 0 1 0 0 1 0 1 1 1 0
+  1 0 0 1 0 0 0 1 0 1 1 0 1]]
+49 bits of appended frozen bits
+Total 26555 bits has been made public
+********
+
+
+(0:01:19.373435) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26556 bits has been made public
+********
+
+
+(0:01:30.303858) Bob  : CRC check indicates failure of reconciliation
+Reconciliation FAILED at stage 4
+Total leaked bits: 26556
+Assumed Effective Efficiency: 1.0861474849266628
+Real Efficiency: 1.120954844972561
+
+
+----------------
+(0:01:30.303976) Stage 5 of appending reconciliation
+----------------
+
+
+********
+(0:01:30.304019) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[1 1 1 0 1 1 0 0 1 0 0 1 0 0 1 0 0 1 1 1 0 1 0 0 0 1 0 0 0 1 0 1 1 0 1 0
+  0 0 1 0 0 1 0 0 1 0 1 0 1]]
+49 bits of appended frozen bits
+Total 26605 bits has been made public
+********
+
+
+(0:01:35.912316) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26606 bits has been made public
+********
+
+
+(0:01:46.850843) Bob  : CRC check indicates failure of reconciliation
+Reconciliation FAILED at stage 5
+Total leaked bits: 26606
+Assumed Effective Efficiency: 1.0881924982662596
+Real Efficiency: 1.123065394085704
+
+
+----------------
+(0:01:46.850938) Stage 6 of appending reconciliation
+----------------
+
+
+********
+(0:01:46.850978) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[0 1 1 1 1 1 1 0 0 1 0 1 1 1 0 0 0 0 1 0 0 0 0 0 1 1 0 0 0 1 1 0 1 1 1 0
+  0 0 1 1 0 1 0 0 1 0 1 0 1]]
+49 bits of appended frozen bits
+Total 26655 bits has been made public
+********
+
+
+(0:01:52.555847) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26656 bits has been made public
+********
+
+
+(0:02:03.686416) Bob  : CRC check indicates failure of reconciliation
+Reconciliation FAILED at stage 6
+Total leaked bits: 26656
+Assumed Effective Efficiency: 1.0902375116058565
+Real Efficiency: 1.125175943198847
+
+
+----------------
+(0:02:03.686540) Stage 7 of appending reconciliation
+----------------
+
+
+********
+(0:02:03.686600) TRANSMISSION: Alice to Bob
+Bob: Waiting for appended frozen bits from Alice...
+[[1 1 0 0 0 0 0 1 0 0 1 0 1 0 1 0 1 1 1 0 1 0 0 0 0 0 1 1 1 1 1 0 1 1 0 0
+  0 0 0 0 1 1 0 0 0 0 0 0 0]]
+49 bits of appended frozen bits
+Total 26705 bits has been made public
+********
+
+
+(0:02:09.191235) Bob  : Apply CRC Aided SCL decoder
+Bob  : CA-SCL Decoder input frozen vector: [[1 0 1 ... 0 0 0]]
+Bob  : CA-SCL Decoder input LLR: [[-3.2451932 -3.2451932  3.2451932 ...  3.2451932  3.2451932 55.168285 ]]
+Bob  : CA-SCL Decoded KEY: [[1 0 1 ... 0 0 0]]
+
+
+********
+TRANSMISSION: Bob to Alice
+1 bits of CRC check flag
+Total 26706 bits has been made public
+********
+
+
+(0:02:20.519496) Bob  : CRC check indicates success of reconciliation
+Reconciliation SUCCESS at stage 7
+Total leaked bits: 26706
+Assumed Effective Efficiency: 1.0922825249454533
+Real Efficiency: 1.1272864923119903
+Server stopped

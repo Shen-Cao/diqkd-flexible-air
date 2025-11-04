@@ -1020,3 +1020,255 @@ class bit_reverser(Py_Module):
         self.create_codelet(task_br, lambda m,l,f: m.bit_reverse_transform(l[0], l[1]))
         
     pass
+
+
+class NumpyArrayHttpReceiver:
+    '''
+    A class to receive numpy arrays over HTTP protocol.
+    
+    This class sets up an HTTP server that can receive numpy arrays sent by clients.
+    The arrays are serialized and sent as JSON data with shape and dtype information.
+    
+    Parameters
+    ----------
+    host : str
+        The host address to bind the server to
+    port : int
+        The port number to listen on
+        
+    Attributes
+    ----------
+    host : str
+        The host address the server is bound to
+    port : int
+        The port number the server is listening on
+    received_array : numpy.ndarray
+        The most recently received numpy array
+    server_running : bool
+        Flag indicating if the server is currently running
+    '''
+    
+    def __init__(self, host='localhost', port=8080):
+        import json
+        import http.server
+        import socketserver
+        import threading
+        import socket
+        from io import BytesIO
+        import base64
+        
+        self.host = host
+        self.port = port
+        self.received_array = None
+        self.server_running = False
+        self.server = None
+        self.server_thread = None
+        
+        # Store required modules for use in methods
+        self.json = json
+        self.http_server = http.server
+        self.socketserver = socketserver
+        self.threading = threading
+        self.base64 = base64
+        self.socket = socket
+        
+    def _create_handler(self):
+        '''Create a custom request handler class'''
+        json = self.json
+        base64 = self.base64
+        receiver_instance = self
+        from io import BytesIO
+        
+        class ArrayRequestHandler(self.http_server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                
+                try:
+                    # Parse the JSON data
+                    data = json.loads(post_data.decode('utf-8'))
+                    
+                    # Extract array information
+                    shape = tuple(data['shape'])
+                    dtype = data['dtype']
+                    array_data = base64.b64decode(data['data'])
+                    
+                    # Reconstruct the numpy array
+                    array_bytes = BytesIO(array_data)
+                    reconstructed_array = np.load(array_bytes)
+                    reconstructed_array = reconstructed_array.reshape(shape)
+                    
+                    # Store the received array
+                    receiver_instance.received_array = reconstructed_array
+                    
+                    # Send success response
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    response = json.dumps({"status": "success", "message": "Array received successfully"})
+                    self.wfile.write(response.encode('utf-8'))
+                    
+                except Exception as e:
+                    # Send error response
+                    self.send_response(400)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    response = json.dumps({"status": "error", "message": str(e)})
+                    self.wfile.write(response.encode('utf-8'))
+                    
+            def log_message(self, format, *args):
+                # Suppress default logging
+                pass
+                
+        return ArrayRequestHandler
+        
+    def start_server(self):
+        '''Start the HTTP server in a separate thread'''
+        if self.server_running:
+            print("Server is already running")
+            return
+            
+        handler = self._create_handler()
+        self.server = self.socketserver.TCPServer((self.host, self.port), handler)
+        # Allow socket to be reused
+        self.server.socket.setsockopt(self.socket.SOL_SOCKET, self.socket.SO_REUSEADDR, 1)
+        self.server_thread = self.threading.Thread(target=self.server.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+        self.server_running = True
+        print(f"Server started at http://{self.host}:{self.port}")
+        
+    def stop_server(self):
+        '''Stop the HTTP server'''
+        if not self.server_running:
+            print("Server is not running")
+            return
+            
+        self.server.shutdown()
+        self.server.server_close()
+        self.server_thread.join()
+        self.server_running = False
+        print("Server stopped")
+        
+    def get_received_array(self):
+        '''Get the most recently received numpy array'''
+        return self.received_array
+        
+    def receive_one_array(self, timeout=30):
+        '''
+        Start the server, receive exactly one array, stop the server and return that array.
+        
+        Parameters
+        ----------
+        timeout : int, optional
+            Maximum time in seconds to wait for an array (default is 30 seconds)
+            
+        Returns
+        -------
+        numpy.ndarray or None
+            The received numpy array, or None if timeout occurred
+        '''
+        import time
+        
+        # Reset any previously received array
+        self.received_array = None
+        
+        # Start the server
+        self.start_server()
+        
+        # Wait for an array to be received
+        start_time = time.time()
+        while self.received_array is None and (time.time() - start_time) < timeout:
+            time.sleep(0.1)  # Check every 100ms
+            
+        # Stop the server
+        self.stop_server()
+        
+        # Return the received array (or None if timeout)
+        return self.received_array
+
+
+class NumpyArrayHttpSender:
+    '''
+    A class to send numpy arrays over HTTP protocol.
+    
+    This class can send numpy arrays to an HTTP server. The arrays are serialized
+    and sent as JSON data with shape and dtype information.
+    
+    Parameters
+    ----------
+    host : str
+        The host address of the server to send to
+    port : int
+        The port number of the server to send to
+        
+    Attributes
+    ----------
+    host : str
+        The host address of the server
+    port : int
+        The port number of the server
+    '''
+    
+    def __init__(self, host='localhost', port=8080):
+        import json
+        import urllib.request
+        from io import BytesIO
+        import base64
+        
+        self.host = host
+        self.port = port
+        self.url = f"http://{host}:{port}"
+        
+        # Store required modules for use in methods
+        self.json = json
+        self.urllib_request = urllib.request
+        self.base64 = base64
+        
+    def send_array(self, array):
+        '''
+        Send a numpy array to the HTTP server
+        
+        Parameters
+        ----------
+        array : numpy.ndarray
+            The numpy array to send
+            
+        Returns
+        -------
+        dict
+            Response from the server
+        '''
+        from io import BytesIO
+        
+        # Convert array to bytes
+        array_buffer = BytesIO()
+        np.save(array_buffer, array)
+        array_bytes = array_buffer.getvalue()
+        
+        # Create JSON payload
+        payload = {
+            'shape': array.shape,
+            'dtype': str(array.dtype),
+            'data': self.base64.b64encode(array_bytes).decode('utf-8')
+        }
+        
+        json_data = self.json.dumps(payload).encode('utf-8')
+        
+        # Create HTTP request
+        req = self.urllib_request.Request(
+            self.url,
+            data=json_data,
+            headers={
+                'Content-Type': 'application/json',
+                'Content-Length': len(json_data)
+            }
+        )
+        
+        try:
+            # Send the request and get response
+            with self.urllib_request.urlopen(req) as response:
+                response_data = response.read().decode('utf-8')
+                return self.json.loads(response_data)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
