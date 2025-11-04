@@ -20,9 +20,11 @@ This project uses the py_aff3ct library to implement polar codec. You may use `g
 
 `docs` contains jupyter notebooks of certain IR realization.
 
-> Current implementation within one jupyter notebook is rather bloated, subsequent updates will refine the functionality.
-
 `src` contains python source codes.
+Two python programs for demonstrate the reconciliation scheme conducted on two separate computers are included.
+After properly set the host address (or you can set `localhost`), one can obtain complete logs of the IR4QKD process on two parties by run Bob's side first, and then run Alice's program after Bob's HTTP server started.
+
+> Current implementation is a mess, subsequent updates will refine the functionality.
 
 `conf` stores configuration files such as polar code frozen vectors and LDPC code matrix.
 
