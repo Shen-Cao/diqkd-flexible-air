@@ -1,5 +1,7 @@
 # diqkd-flexible-air
 
+[简体中文](README_zh-CN.md) | [English](README.md)
+
 Information reconciliation (IR) for device-independent quantum key distribution (DIQKD) using shortened polar codes
 
 ## Project Structure
@@ -22,7 +24,7 @@ diqkd-flexible-air/
 ├── submodules/                   # Git submodules
 │   └── py_aff3ct/                # AFF3CT library (Python bindings)
 ├── requirements_pip.txt          # pip dependencies
-└── requirements_conda.txt        # conda dependencies (recommended)
+└── requirements_conda.txt        # conda dependencies
 ```
 
 ## Environment Setup
