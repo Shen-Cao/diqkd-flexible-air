@@ -1,31 +1,146 @@
 # diqkd-flexible-air
 
-Information reconciliation (IR) for device-independent quantum key distribution (DIQKD) based on shortened polar codes
+Information reconciliation (IR) for device-independent quantum key distribution (DIQKD) using shortened polar codes
 
-## Environment Configuration
+## Project Structure
 
-One can use `pip install -r requirements_pip.txt` to install packages with pip or use `conda install --yes --file requirements_conda.txt` to install packages in a conda virtual environment. The latter is recommended because it contains the version of python and C++ compliers (gcc and gxx 15.1.0) that are verified to successfully compile the py_aff3ct library.
+```text
+diqkd-flexible-air/
+├── src/                          # Python source code
+│   ├── qkd-air-demo-alice.py     # Alice's side demo program
+│   ├── qkd-air-demo-bob.py       # Bob's side demo program
+│   └── utils.py                  # Utility modules (encoders, decoders, HTTP communication)
+├── data/                         # Experimental sifted key data
+│   ├── Alice_key.bin             # Alice's sifted key (from experiment)
+│   ├── Bob_key.bin               # Bob's sifted key (from experiment)
+│   └── pe2idx.py                 # Script to generate channel reliability indices
+├── conf/                         # Configuration files
+│   └── polar/bsc/                # Polar code frozen vectors for BSC channel
+├── docs/                         # Documentation and notebooks
+│   └── qkd-air.ipynb             # Jupyter notebook demonstration
+├── log/                          # Runtime logs
+├── submodules/                   # Git submodules
+│   └── py_aff3ct/                # AFF3CT library (Python bindings)
+├── requirements_pip.txt          # pip dependencies
+└── requirements_conda.txt        # conda dependencies (recommended)
+```
 
-> It is possible that conda cannot install the required packages from the file even in a completely new environment.
-> In this case, you can try installing GCC and G++ first `conda install -c conda-forge gcc=15.1.0 gxx=15.1.0`.
-Then install python `conda install python=3.11.13` and lastly `pip install -r requirements_pip.txt`
+## Environment Setup
 
-## Library py_aff3ct
+### Option 1: Conda
+
+The conda environment includes verified Python and C++ compiler versions:
+
+```bash
+# Create and activate conda environment
+conda create -n diqkd
+conda activate diqkd
+
+conda install --yes --file requirements_conda.txt
+```
+
+### Option 2: Conda and pip
+
+If conda cannot install the required packages from the file even in a completely new environment, then you can try to install GCC/G++ compilers first, then use `pip`:
+
+```bash
+# Create and activate conda environment
+conda create -n diqkd
+conda activate diqkd
+# Install GCC/G++ compilers (required for py_aff3ct)
+conda install -c conda-forge gcc=15.1.0 gxx=15.1.0
+
+# Install Python
+conda install python=3.11.13
+
+# Install Python dependencies
+pip install -r requirements_pip.txt
+```
+
+> **Note**: If conda fails to install packages, try installing GCC/G++ first, then Python, and finally the pip requirements.
+
+## Building py_aff3ct
 
 This project uses the py_aff3ct library to implement polar codec. You may use `git submodule update --init --recursive` to initialize and update all submodules. To compile the library, follow the instructions in [py_aff3ct Readme file](https://github.com/Shen-Cao/py_aff3ct/blob/master/README.md).
 
-> Remark: One may meet error of `uint_8 does not name a type` during compilation (e.g. WSL2-Ubuntu-22.04, gcc 15.1.0, gxx 15.1.0). A simple solution is to add `#include <stdint.h>` to the begining of reported file(s).
+> Compilation Troubleshooting: If you encounter `uint_8 does not name a type` error during compilation (e.g., WSL2-Ubuntu-22.04, gcc 15.1.0, gxx 15.1.0). A simple solution is to add `#include <stdint.h>` to the beginning of the reported file(s).
 
-## Information Reconciliation
+## Configuration and Usage
 
-`docs` contains jupyter notebooks of certain IR realization.
+For an interactive demonstration, see `docs/qkd-air.ipynb`.
 
-`src` contains python source codes.
-Two python programs for demonstrate the reconciliation scheme conducted on two separate computers are included.
-After properly set the host address (or you can set `localhost`), one can obtain complete logs of the IR4QKD process on two parties by run Bob's side first, and then run Alice's program after Bob's HTTP server started.
+`conf/` stores configuration files of codecs.
 
-> Current implementation is a mess, subsequent updates will refine the functionality.
+`data/` stores sifted key data collected from experiments, and a python program to generate channel reliability index.
 
-`conf` stores configuration files such as polar code frozen vectors and LDPC code matrix.
+`.py` files in `src/` folder simulates reconciliation between Alice and Bob on two separate computers.
 
-`data` stores sifted key data collected from experiments, and a python program to generate channel reliability index.
+**To run the demo:**
+
+**Step 1**: Configure network addresses in the demo files:
+
+- Edit `src/qkd-air-demo-alice.py` and `src/qkd-air-demo-bob.py`
+- Set `sender_host`, `sender_port`, `receiver_host`, `receiver_port` appropriately
+- For local testing, use `'localhost'`
+
+**Step 2**: Run Bob's side first (starts the HTTP server):
+
+```bash
+cd src
+python qkd-air-demo-bob.py
+```
+
+**Step 3**: Run Alice's side after Bob's server starts:
+
+```bash
+cd src
+python qkd-air-demo-alice.py
+```
+
+**Step 4**: Check logs in `log/demo/` for complete reconciliation records.
+
+### Polar Code Configuration
+
+- Uses shortened polar codes to handle arbitrary key lengths
+- Frozen bit positions determined by channel reliability (BSC with design BER)
+- Configuration files in `conf/polar/bsc/` follow the `.pc` format
+
+> The channel reliability data files were generated by algorithm from the paper _How to Construct Polar Codes_ ([Arxiv link](https://arxiv.org/abs/1105.6164) or [IEEE TIT](https://ieeexplore.ieee.org/document/6557004)), which is implemented with MATLAB in [PolarCodes-Encoding-Decoding-Construction](https://github.com/YuYongRun/PolarCodes-Encoding-Decoding-Construction), with C++ in [PolarCodeForQKD](https://github.com/cfxtby/PolarCodeForQKD) and rewritten by Rust in [polar-fbgen-rust](https://github.com/Shen-Cao/polar-fbgen-rust).
+
+## Data
+
+Experimental sifted key data from DIQKD experiments is included in `data/`:
+
+- `Alice_key.bin` / `Bob_key.bin`: Raw binary sifted keys
+- Real QBER from data: ~3.6%
+
+## Citation
+
+If you find this repo useful for your work, please cite our paper:
+
+```bibtex
+@article{
+    nature_2026,
+    title={Long-lived remote ion–ion entanglement for scalable quantum repeaters},
+    rights={2026 The Author(s), under exclusive licence to Springer Nature Limited},
+    ISSN={1476-4687},
+    DOI={10.1038/s41586-026-10177-4},
+    journal={Nature},
+    publisher={Nature Publishing Group},
+    author={Liu, Wen-Zhao and Zhou, Ya-Bin and Chen, Jiu-Peng and Wang, Bin and Teng, Ao and Han, Xiao-Wen and Liu, Guang-Cheng and Zhang, Zhi-Jiong and Yang, Yi and Liu, Feng-Guang and Xue, Chao-Hui and Yang, Bo-Wen and Yang, Jin and Zeng, Chao and Pan, Du-Ruo and Zheng, Ming-Yang and Zhang, Xingjian and Cao, Shen and Zhen, Yi-Zheng and Xiao, You and Li, Hao and You, Lixing and Ma, Xiongfeng and Zhao, Qi and Xu, Feihu and Wang, Ye and Wan, Yong and Zhang, Qiang and Pan, Jian-Wei},
+    year={2026},
+    month=feb,
+    pages={1–7},
+}
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [AFF3CT](https://aff3ct.github.io/) - The underlying FEC library
+- [py_aff3ct](https://github.com/Shen-Cao/py_aff3ct) - Python bindings for AFF3CT
+- [PolarCodeForQKD](https://github.com/cfxtby/PolarCodeForQKD)
+- [PolarCodes-Encoding-Decoding-Construction](https://github.com/YuYongRun/PolarCodes-Encoding-Decoding-Construction)
