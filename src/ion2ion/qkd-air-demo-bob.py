@@ -1,7 +1,7 @@
 #%% Import necessary libraries
 import sys
 import os
-sys.path.insert(0, '../submodules/py_aff3ct/build/lib')
+sys.path.insert(0, '../../submodules/py_aff3ct/build/lib')
 import numpy as np
 import time
 from datetime import datetime
@@ -11,10 +11,10 @@ import py_aff3ct
 assumed_q_ber = 0.0375
 
 # Log the program
-log_dir = '../log/demo'
+log_dir = '../../log/demo'
 os.makedirs(log_dir, exist_ok=True)
 start_time = datetime.now()
-log_file = os.path.join(log_dir, f'qkdir_demo_alice_assumed_{assumed_q_ber}_{start_time.strftime("%H%M%S")}.txt')
+log_file = os.path.join(log_dir, f'qkdir_demo_bob_assumed_{assumed_q_ber}_{start_time.strftime("%H%M%S")}.txt')
 
 class Logger:
     def __init__(self, log_file):
@@ -41,17 +41,18 @@ print("Remark: The statistical QBER is only for calculating the efficiency in th
 print("        Alice and Bob will only read their own KEY")
 print("\n")
 
-with open('../data/Alice_key.bin', 'rb') as f: 
+with open('../../data/Bob_key.bin', 'rb') as f: 
     data = np.fromfile(f, dtype = np.uint8)
     pass
 
-alice_sifted_key = np.unpackbits(data)
+bob_sifted_key = np.unpackbits(data)
 
-alice_sifted_key = alice_sifted_key.astype(np.int32)
+# alice_sifted_key = alice_sifted_key.astype(np.int32)
+bob_sifted_key = bob_sifted_key.astype(np.int32)
 
 # assert alice_sifted_key.shape[0] == bob_sifted_key.shape[0], "sifted key should of equal length."
 
-len_sifted_key = alice_sifted_key.shape[0]
+len_sifted_key =  bob_sifted_key.shape[0]
 
 #%% Configure Superparameters
 # # # # # # # # # # # # # # # #
@@ -140,11 +141,11 @@ print('\n')
 
 #%% Prepare Frozen Vector
 # # # # # # # # # # # # # # # #
-sys.path.insert(0, '../src/')
+sys.path.insert(0, '../../src/')
 from utils import generate_shortened_BGL, generate_frozen_position_from_file
 from copy import deepcopy
 
-fb_file_dir = '../conf/polar/bsc/n{}_bsc_ber{}_mu40.pc'.format(int(np.log2(block_encoded_bits)), q_ber)
+fb_file_dir = '../../conf/polar/bsc/n{}_bsc_ber{}_mu40.pc'.format(int(np.log2(block_encoded_bits)), q_ber)
 
 try:
     with open(fb_file_dir, 'r') as f:
@@ -156,7 +157,7 @@ try:
 except Exception:
     # print("polar code .pc file not found")
     # print("try to load _cpp.pc file")
-    fb_file_dir = '../conf/polar/bsc/n{}_bsc_ber{}_mu40_cpp.pc'.format(int(np.log2(block_encoded_bits)), q_ber)
+    fb_file_dir = '../../conf/polar/bsc/n{}_bsc_ber{}_mu40_cpp.pc'.format(int(np.log2(block_encoded_bits)), q_ber)
     with open(fb_file_dir, 'r') as f:
         lines = f.readlines()
         # The 4th line contains the reliability information
@@ -192,10 +193,25 @@ print('\n')
 from py_aff3ct.module.encoder import Encoder_polar
 from py_aff3ct.module.decoder import Decoder_polar_SCL_naive_CA, Decoder_polar_SCL_naive
 from py_aff3ct.module.crc import CRC, CRC_polynomial
-crc_alice = CRC_polynomial(block_encoded_bits, '0x04C11DB7', crc_size)
+crc_stage = []
 enc_stage = []
-enc_stage.append(Encoder_polar(info_bits_stage[0], block_encoded_bits, frozen_vec_stage[0]))
-enc_stage[0].set_frozen_bits(frozen_vec_stage[0])
+dec_stage = []
+
+for stage in range(len(effective_frozen_bits_stage)):
+    crc_stage.append(CRC_polynomial(block_encoded_bits, '0x04C11DB7', crc_size))
+    dec_stage.append(Decoder_polar_SCL_naive_CA(info_bits_stage[stage], block_encoded_bits, scl_len, frozen_vec_stage[stage], crc_stage[stage]))
+    dec_stage[stage].set_frozen_bits(frozen_vec_stage[stage])
+    pass
+
+# LLR Calculater and Shortener
+# # # # # # # # # # # # # # # #
+from utils import llr_calculater_bsc, shortener
+
+llr_bsc_stage = []
+llr_bsc_stage.append(llr_calculater_bsc(q_ber, block_encoded_bits))
+shortener_stage = []
+shortener_stage.append(shortener(block_encoded_bits))
+shortener_stage[0].set_shorten_bits(deepcopy(shortened_vec.astype(np.float32).reshape((1, -1))))
 
 #%% Initialize al py_aff3ct Modules
 # # # # # # # # # # # # # # # #
@@ -204,28 +220,24 @@ from py_aff3ct.module.monitor import Monitor_BFER_AR
 
 # The padder will fill the sifted KEY bits into non-shortened positions
 non_shortened_mask = np.logical_not(np.asarray(shortened_vec, dtype=np.bool)).astype(np.int32).reshape((1, -1))
-padder_alice = mask_fillor(len_sifted_key, block_encoded_bits, dtype=np.int32)
+padder_bob = mask_fillor(len_sifted_key, block_encoded_bits, dtype=np.int32)
 
 # We also need another selector to extract the frozen bits in the encoded alice vector
 effective_frozen_vec_mask_stage = [deepcopy(bl.astype(np.int32).reshape((1, -1))) for bl in effective_frozen_vec_stage]
 
-# An extractor will be utilized to extract the crc value in output message of CRC "build" method
-ext_crc_stage = []
-ext_crc_stage.append(extractor(block_encoded_bits + crc_size, block_encoded_bits, block_encoded_bits + crc_size))
-
 #%% Execute
 # # # # # # # # # # # # # # # #
 from utils import NumpyArrayHttpReceiver, NumpyArrayHttpSender
-# Alice sends to Bob on port 8003 and receives from Bob on port 8002
-sender_host = '10.64.86.101'
-sender_port = 8003
-receiver_host = '10.68.133.215'
-receiver_port = 8002
-array_sender = NumpyArrayHttpSender(host=sender_host, port=sender_port)
+# Bob receives from Alice on port 8081 and sends to Alice on port 8082
+sender_host = '10.68.133.215'
+sender_port = 8082
+receiver_host = '10.64.86.100'
+receiver_port = 8081
+array_sender = NumpyArrayHttpSender(host=sender_host, port = sender_port)
 array_receiver = NumpyArrayHttpReceiver(host=receiver_host, port=receiver_port)
 array_receiver.start_server()
 
-fixed_alice_from_file = alice_sifted_key.reshape((1, -1)).astype(np.int32)
+fixed_bob_from_file = bob_sifted_key.reshape((1, -1)).astype(np.int32)
 # Alice and Bob execute step by step
 num_bits_transmitted = 0
 print("# "*16)
@@ -235,55 +247,83 @@ print("All communications are transmitted via classical public noiseless channel
 print("# "*16)
 print("\n")
 
-array_sender.send_array(np.ones(2))
-print("Alice: Start the reconciliation phase")
+print("Bob  : Wait for Alice starting the reconciliation phase")
+http_start_time = time.time()
+while array_receiver.received_array is None and (time.time() - http_start_time) < 1200:
+    time.sleep(0.1)  # Check every 100ms
+if array_receiver.received_array is not None:
+    sig = array_receiver.received_array.copy()
+    array_receiver.received_array = None  # Reset for next array
+    print("Bob  : Start the reconciliation phase")
+else:
+    print("Bob: Timeout waiting for signal from Alice")
+    sig = None
 print("\n")
 
-# Alice pad the KEY
-padded_alice_bits = np.zeros((1, block_encoded_bits), dtype = np.int32)
-padder_alice["fill ::output"].bind(padded_alice_bits)
-padder_alice["fill ::mask"].bind(non_shortened_mask)
-padder_alice["fill ::input"].bind(fixed_alice_from_file)
-print(f"({datetime.now() - start_time}) Alice: Pad sifted KEY")
-padder_alice["fill"].exec()
-print(f"Alice: Length: {len_sifted_key} to {block_encoded_bits}")
-print(f"Alice: Padded sifted KEY: {padded_alice_bits}")
+# Bob
+padded_bob_bits = np.zeros((1, block_encoded_bits), dtype = np.int32)
+padder_bob["fill ::output"].bind(padded_bob_bits)
+padder_bob["fill ::mask"].bind(non_shortened_mask)
+padder_bob["fill ::input"].bind(fixed_bob_from_file)
+print(f"({datetime.now() - start_time}) Bob  : Pad sifted KEY")
+padder_bob["fill"].exec()
+print(f"Bob  : Length: {len_sifted_key} to {block_encoded_bits}")
+print(f"Bob  : Padded sifted KEY: {padded_bob_bits}")
 print("\n")
 
-# Alice apply the polar encoder to padded sifted key
-encoded_alice = np.zeros_like(padded_alice_bits)
-enc_stage[0]["light_encode ::U_N"].bind(padded_alice_bits)
-enc_stage[0]["light_encode ::X_N"].bind(encoded_alice)
-enc_stage[0]["light_encode"].exec()
-print(f"({datetime.now() - start_time}) Alice: Encode padded sifted KEY")
-print(f"Alice: Encoded KEY: {encoded_alice}")
+# Bob prepare the LLR of padded KEY
+print(f"({datetime.now() - start_time}) Bob  : Calculate LLR of padded KEY")
+# The decoder took soft input (LLR)
+bob_decode_llr = np.zeros((1, block_encoded_bits), dtype = np.float32)
+llr_bsc_stage[0]["llr_bsc ::input"].bind(padded_bob_bits)
+llr_bsc_stage[0]["llr_bsc ::output"].bind(bob_decode_llr)
+llr_bsc_stage[0]["llr_bsc"].exec()
+print(f"Bob  : LLR of padded KEY: {bob_decode_llr}")
+# Then shorten the polar code by set a large LLR on shortened positions
+print(f"({datetime.now() - start_time}) Bob  : Shorten the LLR vector")
+shortened_llr = np.zeros_like(bob_decode_llr)
+shortener_stage[0]["shorten ::input"].bind(bob_decode_llr)
+shortener_stage[0]["shorten ::output"].bind(shortened_llr)
+shortener_stage[0]["shorten"].exec()
+print(f"Bob  : Shortened LLR vector: {shortened_llr}")
 print("\n")
-
-# Alice prepare the CRC tag then send it to Bob
-encoded_alice_crc = np.zeros((1, block_encoded_bits + crc_size), dtype=np.int32)
-crc_alice["build ::U_K1"].bind(encoded_alice)
-crc_alice["build ::U_K2"].bind(encoded_alice_crc)
-crc_alice["build"].exec()
-alice_crc_tag = np.zeros((1, crc_size), dtype = np.int32)
-ext_crc_stage[0]["extract ::input"].bind(encoded_alice_crc)
-ext_crc_stage[0]["extract ::output"].bind(alice_crc_tag)
-ext_crc_stage[0]["extract"].exec()
-print(f"({datetime.now() - start_time}) Alice: Calculate CRC tag")
-print(f"Alice: CRC tag of encoded sifted KEY: {alice_crc_tag}")
-print("\n")
-
-time.sleep(5)
 
 # Alice send CRC tag to Bob
 print("*"*8)
 print(f"({datetime.now() - start_time}) TRANSMISSION: Alice to Bob")
+print("Bob: Waiting for CRC tag from Alice...")
+
+# Wait for CRC tag
+timeout = 300
+http_start_time = time.time()
+while array_receiver.received_array is None and (time.time() - http_start_time) < timeout:
+    time.sleep(0.1)  # Check every 100ms
+if array_receiver.received_array is not None:
+    bob_crc_tag = array_receiver.received_array.copy()
+    array_receiver.received_array = None  # Reset for next array
+else:
+    print("Bob: Timeout waiting for CRC tag from Alice")
+    bob_crc_tag = None
+
+print(bob_crc_tag)
+assert bob_crc_tag.shape[-1] == crc_size, "CRC Tag Length Mismatch"
 print(f"{crc_size} bits of CRC tag")
 num_bits_transmitted += crc_size
-array_sender.send_array(alice_crc_tag)
-time.sleep(10)
 print(f"Total {num_bits_transmitted} bits has been made public")
 print("*"*8)
 print("\n")
+
+# Bob setup the CA-SCL Decoder
+print(f"Bob  : Receive {crc_size} bits of CRC tag")
+print(f"({datetime.now() - start_time}) Bob  : Set CRC tag for verification")
+for stage in range(len(frozen_vec_stage)):
+    dec_stage[stage]["set_crc_const ::V_crc"].bind(bob_crc_tag) 
+    dec_stage[stage]["set_crc_const"].exec()
+    pass
+print("\n")
+time.sleep(5)
+
+bob_decode_frozen_vector = np.zeros((1, block_encoded_bits), dtype = np.int32)
 
 failure_flag = True
 
@@ -293,66 +333,71 @@ for stage in range(len(frozen_vec_stage)):
     print(f"({datetime.now() - start_time}) Stage {stage+1} of appending reconciliation")
     print("-"*16)
     print("\n")
-
-    # Alice append new frozen bits, then send it to Bob
-    print(f"({datetime.now() - start_time}) Alice: Extract appended frozen bits")
-    if stage == 0:
-        num_appended_bits = effective_frozen_vec_stage[stage].astype(np.int32).sum()
-        encoded_alice_frozen_bits = np.zeros((1, num_appended_bits), dtype = np.int32)
-        indices = np.where(effective_frozen_vec_mask_stage[stage] == 1)
-    else:
-        num_appended_bits = effective_frozen_vec_stage[stage].astype(np.int32).sum() -\
-                        effective_frozen_vec_stage[stage-1].astype(np.int32).sum()
-        encoded_alice_frozen_bits = np.zeros((1, num_appended_bits), dtype = np.int32)
-        indices = np.where(np.logical_xor(
-            effective_frozen_vec_mask_stage[stage], 
-            effective_frozen_vec_mask_stage[stage-1]).astype(np.int32) == 1)
-        pass
-    encoded_alice_frozen_bits[:] = (encoded_alice[indices])[:]
-    # print("Alice: Extracted frozen bits: {}".format(encoded_alice_frozen_bits))
-    # print("Alice: Number of extracted frozen bits: {}".format(effective_frozen_vec_stage[stage].astype(np.int32).sum()))
-    print(f"Alice: Appended frozen bits: {encoded_alice_frozen_bits}")
-    print(f"Alice: Number of appended bits: {num_appended_bits}")
-    print("\n")
-
     print("*"*8)
     print(f"({datetime.now() - start_time}) TRANSMISSION: Alice to Bob")
+    print("Bob: Waiting for appended frozen bits from Alice...")
+    http_start_time = time.time()
+    while array_receiver.received_array is None and (time.time() - http_start_time) < timeout:
+        time.sleep(0.1)  # Check every 100ms
+    if array_receiver.received_array is not None:
+        bob_decode_frozen_bits = array_receiver.received_array.copy()
+        array_receiver.received_array = None  # Reset for next array
+    else:
+        print("Bob: Timeout waiting for appended frozen bits from Alice")
+        bob_decode_frozen_bits = None
+    num_appended_bits = bob_decode_frozen_bits.shape[-1]
+    print(bob_decode_frozen_bits)
     print(f"{num_appended_bits} bits of appended frozen bits")
     num_bits_transmitted += num_appended_bits
-    array_sender.send_array(encoded_alice_frozen_bits)
-    # time.sleep(10)
     print(f"Total {num_bits_transmitted} bits has been made public")
     print("*"*8)
     print("\n")
     
+    # Prepare frozen vector, which is simply add appended bits to Bob's frozen vector    
+    if stage == 0:
+        indices = np.where(effective_frozen_vec_mask_stage[stage] == 1)
+    else:
+        indices = np.where(np.logical_xor(
+            effective_frozen_vec_mask_stage[stage], 
+            effective_frozen_vec_mask_stage[stage-1]).astype(np.int32) == 1)
+        pass
+    bob_decode_frozen_vector[indices] = bob_decode_frozen_bits
+    # Decode
+    print(f"({datetime.now() - start_time}) Bob  : Apply CRC Aided SCL decoder")
+    dec_status = np.ones((1, 1), dtype = np.int32)
+    decoded_bob = np.zeros((1, block_encoded_bits), dtype = np.int32)
+    dec_stage[stage]["decode_siho_cw_flexible_frozen ::F_N"].bind(bob_decode_frozen_vector)
+    print(f"Bob  : CA-SCL Decoder input frozen vector: {bob_decode_frozen_vector}")
+    dec_stage[stage]["decode_siho_cw_flexible_frozen ::Y_N"].bind(shortened_llr)
+    print(f"Bob  : CA-SCL Decoder input LLR: {shortened_llr}")
+    dec_stage[stage]["decode_siho_cw_flexible_frozen ::status"].bind(dec_status)
+    dec_stage[stage]["decode_siho_cw_flexible_frozen ::V_N"].bind(decoded_bob)
+    dec_stage[stage]["decode_siho_cw_flexible_frozen"].exec()
+    print(f"Bob  : CA-SCL Decoded KEY: {decoded_bob}")
+    print("\n")
+    
+    time.sleep(5)
     print("*"*8)
     print("TRANSMISSION: Bob to Alice")
-    print("Alice: Waiting for CRC check result from Bob...")
-    http_start_time = time.time()
-    while array_receiver.received_array is None and (time.time() - http_start_time) < 120:
-        time.sleep(0.1)  # Check every 100ms
-    if array_receiver.received_array is not None:
-        dec_status = array_receiver.received_array.copy()
-        array_receiver.received_array = None  # Reset for next array
-    else:
-        print("Alice: Timeout waiting for dec_status from Bob")
-        dec_status = None
-    # dec_status = array_receiver.receive_one_array(timeout = 120)
-    print(dec_status)
     print("1 bits of CRC check flag")
+    array_sender.send_array(dec_status)
+    # time.sleep(5)
     num_bits_transmitted += 1
     print(f"Total {num_bits_transmitted} bits has been made public")
     print("*"*8)
-    time.sleep(5)
+    print("\n")
 
     if np.abs(dec_status).sum() == 0:
+        print(f"({datetime.now() - start_time}) Bob  : CRC check indicates success of reconciliation")
+        print(f"Reconciliation SUCCESS at stage {stage + 1}")
         failure_flag = False
-        print(f"({datetime.now() - start_time}) Success of reconciliation announced by Bob.")
+        print("Total leaked bits: {}".format(num_bits_transmitted))
         print("Assumed Effective Efficiency: {}".format(num_bits_transmitted/assumed_ideal_frozen_bits))
         print("Real Efficiency: {}".format(num_bits_transmitted/ideal_frozen_bits))
         break
     else: 
-        print(f"Reconciliation FAILURE announced at stage {stage + 1}")
+        print(f"({datetime.now() - start_time}) Bob  : CRC check indicates failure of reconciliation")
+        print(f"Reconciliation FAILED at stage {stage + 1}")
         pass
     print("Total leaked bits: {}".format(num_bits_transmitted))
     print("Assumed Effective Efficiency: {}".format(num_bits_transmitted/assumed_ideal_frozen_bits))

@@ -7,6 +7,18 @@ import threading, time
 
 DTYPE_FLOAT = np.float32
 
+def wilson_ci(x, n, z):
+    """Wilson score interval for binomial proportion."""
+    p_hat = x / n
+    denom = 1 + z**2 / n
+    center = (p_hat + z**2 / (2 * n)) / denom
+    half = z * np.sqrt(p_hat * (1 - p_hat) / n + z**2 / (4 * n**2)) / np.sqrt(denom)
+    return center - half, center + half
+
+
+def fmt_pct(x, prec=4):
+    return f"{x*100:.{prec}f}%"
+
 class seq_execution(threading.Thread):
     '''
     A thread for executing an AFF3CT sequence.
@@ -855,11 +867,16 @@ def generate_frozen_position_from_file(file_dir, num_frozen_bits, shortened_posi
         # Convert to np.int64 array
         reliability_sorted_idx = np.array([int(x) for x in reliability_line.split()], dtype=np.int64)
     
+    # Convert shortened_positions to a Python set for O(1) membership tests.
+    # The naive `idx not in numpy_array` is O(N) per check, making the loop
+    # below O(N^2) — prohibitive at large N (e.g. N=2^20 takes minutes).
+    shortened_set = set(int(x) for x in np.asarray(shortened_positions).ravel())
+
     # Get the last num_frozen_bits elements that are not in shortened_positions
     # We need to filter out shortened positions from the reliability indices
     available_indices = []
     for idx in reversed(reliability_sorted_idx):  # Process in reverse order (least reliable first)
-        if idx not in shortened_positions:
+        if int(idx) not in shortened_set:
             available_indices.append(idx)
             if len(available_indices) == num_frozen_bits:
                 break
