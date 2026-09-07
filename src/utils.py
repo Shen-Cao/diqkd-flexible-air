@@ -777,9 +777,11 @@ def generate_punctured_BGL(N, S):
     indices = np.array(range(0, S))
     
     # Compute bit-reversed values
-    punct_set = np.array([reverse_bits(i, n_bits) for i in indices])
+    # NOTE: dtype is explicit so that S == 0 yields an *empty integer* array
+    # (a default-constructed empty np.array is float64 and cannot index).
+    punct_set = np.array([reverse_bits(i, n_bits) for i in indices], dtype=np.int64)
     
-    # Last S indices in sorted order are the shortened positions
+    # Last S indices in sorted order are the punctured positions
     return punct_set
 
 def generate_shortened_BGL(N, S):
@@ -798,10 +800,92 @@ def generate_shortened_BGL(N, S):
     indices = np.array(range(N - S, N))
     
     # Compute bit-reversed values
-    punct_set = np.array([reverse_bits(i, n_bits) for i in indices])
+    # NOTE: dtype is explicit so that S == 0 yields an *empty integer* array.
+    punct_set = np.array([reverse_bits(i, n_bits) for i in indices], dtype=np.int64)
     
     # Last S indices in sorted order are the shortened positions
     return punct_set
+
+def generate_shortened_from_file(file_path):
+    """
+    Read shortened positions from a file produced by polar-fbgen-rust.
+
+    The on-disk format (written by cli.rs::write_shortened_file) is:
+
+        # Shortened positions (count=S)
+        idx_0
+        idx_1
+        ...
+        idx_{S-1}
+
+    Lines starting with '#' are treated as comments and skipped. Blank lines
+    are ignored. The remaining lines must each contain a single integer index
+    in [0, N).
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the shortened positions file.
+
+    Returns
+    -------
+    np.ndarray
+        1-D int64 array of shortened position indices, same shape and dtype
+        convention as ``generate_shortened_BGL`` so the two are drop-in
+        interchangeable from the caller's perspective.
+    """
+    positions = []
+    with open(file_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            positions.append(int(line))
+    return np.array(positions, dtype=np.int64)
+
+
+def generate_punctured_from_file(file_path):
+    """
+    Read punctured positions from a file produced by polar-fbgen-rust.
+
+    The on-disk format mirrors ``generate_shortened_from_file``:
+
+        # Punctured positions (count=P)
+        idx_0
+        idx_1
+        ...
+        idx_{P-1}
+
+    (Note: as of polar-fbgen-rust's current output writer, the header line in
+    punctured files may erroneously read ``# Shortened positions (count=P)``.
+    This loader ignores header text entirely and only trusts the integer body
+    + the caller-supplied filename, so the typo is harmless here.)
+
+    Lines starting with '#' are treated as comments and skipped. Blank lines
+    are ignored. The remaining lines must each contain a single integer index
+    in [0, N).
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the punctured positions file.
+
+    Returns
+    -------
+    np.ndarray
+        1-D int64 array of punctured position indices, same shape and dtype
+        convention as ``generate_punctured_BGL`` so the two are drop-in
+        interchangeable from the caller's perspective. Returns an empty
+        1-D int64 array if the file contains no indices (P=0 case).
+    """
+    positions = []
+    with open(file_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            positions.append(int(line))
+    return np.array(positions, dtype=np.int64)
 
 def reverse_bits(n, n_bits):
     """Reverse the bits of an integer with given bit length."""
@@ -811,28 +895,33 @@ def reverse_bits(n, n_bits):
             result |= (1 << (n_bits - 1 - i))
     return result
 
-def generate_frozen_bits_from_file(file_dir, num_frozen_bits, shortened_positions, verbose = True):
+def generate_frozen_bits_from_file(file_dir, num_frozen_bits, sp_positions, verbose = True):
     """
     Generate frozen bit positions from a reliability file.
     
     Parameters
     ----------
     file_dir: str
-        Path to the reliability file
+        Path to the reliability file (.pc format).
     num_frozen_bits: int
-        Number of frozen bits to select
-    shortened_positions: np.ndarray
-        Array of shortened positions (these should also be frozen)
+        Number of effective frozen bits to select from the reliability order,
+        excluding ``sp_positions``.
+    sp_positions: np.ndarray
+        Array of "off-limits" positions (shortened ∪ punctured) that are
+        already frozen by construction. These are excluded from the
+        ``num_frozen_bits`` count and are appended to the final frozen set.
+        For shortened-only codes, pass the shortened indices directly; for
+        joint punctured+shortened codes, pass ``np.concatenate([punct, short])``.
         
     Returns
     -------
     np.ndarray
-        Boolean array indicating frozen bit positions
+        Boolean array indicating frozen bit positions (length N).
     """
     
-    N, _, new_frozen_positions = generate_frozen_position_from_file(file_dir, num_frozen_bits, shortened_positions, verbose = verbose)
+    N, _, new_frozen_positions = generate_frozen_position_from_file(file_dir, num_frozen_bits, sp_positions, verbose = verbose)
 
-    frozen_positions = np.concatenate([shortened_positions, new_frozen_positions])
+    frozen_positions = np.concatenate([sp_positions, new_frozen_positions])
     
     # Create boolean array
     frozen_bits = np.zeros(N, dtype=bool)
@@ -841,23 +930,33 @@ def generate_frozen_bits_from_file(file_dir, num_frozen_bits, shortened_position
     return frozen_bits
 
 
-def generate_frozen_position_from_file(file_dir, num_frozen_bits, shortened_positions, verbose = True):
+def generate_frozen_position_from_file(file_dir, num_frozen_bits, sp_positions, verbose = True):
     """
-    Generate frozen bit positions from a reliability file.
+    Generate effective frozen bit indices from a reliability file.
+
+    Picks the ``num_frozen_bits`` least-reliable channels that are NOT in
+    ``sp_positions``. By BGL construction, shortened/punctured positions are
+    already incapable/overcapable bits and therefore implicitly frozen — they
+    must be excluded from the "effective" frozen count to avoid double-counting.
     
     Parameters
     ----------
     file_dir: str
-        Path to the reliability file
+        Path to the reliability file (.pc format).
     num_frozen_bits: int
-        Number of frozen bits to select
-    shortened_positions: np.ndarray
-        Array of shortened positions (these should also be frozen)
+        Number of effective frozen bits to select (excludes sp_positions).
+    sp_positions: np.ndarray
+        Off-limits positions (shortened ∪ punctured) — these are skipped when
+        walking the reliability order. Pass the union for joint S+P codes.
         
     Returns
     -------
-    np.ndarray
-        Shortened positions and new frozen positions
+    (int, np.ndarray, np.ndarray)
+        Triple ``(N, sp_positions, effective_frozen_positions)``:
+        - N: mother code length (inferred from reliability file size)
+        - sp_positions: same array as input (for caller convenience)
+        - effective_frozen_positions: indices of the ``num_frozen_bits``
+          least-reliable channels not already in ``sp_positions``
     """
     # Read the 4th line of the file as reliability_sorted_idx
     with open(file_dir, 'r') as f:
@@ -867,16 +966,17 @@ def generate_frozen_position_from_file(file_dir, num_frozen_bits, shortened_posi
         # Convert to np.int64 array
         reliability_sorted_idx = np.array([int(x) for x in reliability_line.split()], dtype=np.int64)
     
-    # Convert shortened_positions to a Python set for O(1) membership tests.
+    # Convert sp_positions to a Python set for O(1) membership tests.
     # The naive `idx not in numpy_array` is O(N) per check, making the loop
     # below O(N^2) — prohibitive at large N (e.g. N=2^20 takes minutes).
-    shortened_set = set(int(x) for x in np.asarray(shortened_positions).ravel())
+    sp_set = set(int(x) for x in np.asarray(sp_positions).ravel())
 
-    # Get the last num_frozen_bits elements that are not in shortened_positions
-    # We need to filter out shortened positions from the reliability indices
+    # Walk reliability_sorted_idx from least reliable to most reliable
+    # (reverse of the .pc file order, which is most-reliable first), skipping
+    # any position already in sp_set. Stop once we have num_frozen_bits of them.
     available_indices = []
-    for idx in reversed(reliability_sorted_idx):  # Process in reverse order (least reliable first)
-        if int(idx) not in shortened_set:
+    for idx in reversed(reliability_sorted_idx):
+        if int(idx) not in sp_set:
             available_indices.append(idx)
             if len(available_indices) == num_frozen_bits:
                 break
@@ -884,7 +984,280 @@ def generate_frozen_position_from_file(file_dir, num_frozen_bits, shortened_posi
     if verbose:
         print("Totally {} bits appended to frozen bits set".format(len(available_indices)))
 
-    return len(reliability_sorted_idx), shortened_positions, np.array(available_indices, dtype=np.int64)
+    return len(reliability_sorted_idx), sp_positions, np.array(available_indices, dtype=np.int64)
+
+
+def generate_chsh_flip_mask(alice_basis, bob_basis, exp_type, alice_result,
+                            bob_result, complementary=False):
+    """
+    Build a per-subgroup optimal Bob-flip mask for Bell-test rounds.
+
+    For each ``(alice_basis, bob_basis)`` subgroup within the Bell-test rounds
+    (``exp_type == 0``), computes the observed correlation ``E`` and decides
+    whether flipping Bob's outcome in that subgroup reduces the post-AIR-flip
+    BER.
+
+    Two conventions are supported via ``complementary``:
+
+    - ``complementary=False`` (default, the convention used by the AIR
+      reconciliation programs in ``src/eat-sep/``):
+      The downstream pipeline applies the AIR flip (``a → 1-a``) on Alice,
+      so the polar-code BER equals ``P(a_raw == b_flipped)`` (agreement rate).
+      To minimise this, flip iff ``E > 0`` (agreement > disagreement).
+
+    - ``complementary=True`` (no-AIR-flip convention):
+      No AIR flip is applied; BER equals ``P(a != b')`` (disagreement rate).
+      To minimise this, flip iff ``E < 0``.
+
+    Both conventions yield the same optimal per-subgroup BER of
+    ``min(agree, disagree) / n`` but the flip masks are complementary.
+
+    Key-gen rounds (``exp_type == 1``) are never flipped — they are already
+    strongly anti-correlated.
+
+    Parameters
+    ----------
+    alice_basis, bob_basis : np.ndarray
+        1-D integer arrays of basis labels.
+    exp_type : np.ndarray
+        1-D integer array; 0 = Bell-test round, 1 = key-gen round.
+    alice_result, bob_result : np.ndarray
+        1-D binary outcome arrays (after SNSPD correction on Bob's side).
+    complementary : bool, optional
+        If True, use the ``E < 0`` threshold (no-AIR-flip convention).
+        If False, use the ``E > 0`` threshold (AIR-flip convention, default).
+
+    Returns
+    -------
+    np.ndarray
+        1-D boolean array; True at positions where Bob's outcome should be
+        flipped.
+    """
+    flip_mask = np.zeros(len(alice_result), dtype=bool)
+    chsh_mask = (exp_type == 0)
+    if not chsh_mask.any():
+        return flip_mask
+
+    threshold = (lambda E: E < 0) if complementary else (lambda E: E > 0)
+
+    for ab in np.unique(alice_basis[chsh_mask]):
+        for bb in np.unique(bob_basis[chsh_mask]):
+            mask = chsh_mask & (alice_basis == ab) & (bob_basis == bb)
+            if not mask.any():
+                continue
+            a = alice_result[mask]
+            b = bob_result[mask]
+            n = int(mask.sum())
+            agree = int(((a == b)).sum())
+            E = (agree - (n - agree)) / n
+            if threshold(E):
+                flip_mask[mask] = True
+
+    return flip_mask
+
+
+def generate_chsh_flip_mask_from_basis(alice_basis, bob_basis, flip_subgroups):
+    """
+    Build a Bob-flip mask for Bell-test rounds from a predetermined set of
+    subgroups, without inspecting the outcomes.
+
+    ``flip_subgroups`` is an iterable of ``(alice_basis, bob_basis)`` pairs
+    in which Bob flips his outcome — e.g. the agreement-dominated (E > 0)
+    subgroups determined from calibration data. Unlike
+    :func:`generate_chsh_flip_mask`, the experimental outcomes are not
+    consulted, so no outcome information is used to steer the flip decision
+    on the experimental data.
+
+    Parameters
+    ----------
+    alice_basis, bob_basis : np.ndarray
+        1-D integer arrays of basis labels.
+    flip_subgroups : iterable of (int, int)
+        ``(alice_basis, bob_basis)`` pairs whose rounds are flipped.
+
+    Returns
+    -------
+    np.ndarray
+        1-D boolean array; True at positions where Bob's outcome should be
+        flipped.
+    """
+    flip_mask = np.zeros(len(alice_basis), dtype=bool)
+    for ab, bb in flip_subgroups:
+        flip_mask |= (alice_basis == ab) & (bob_basis == bb)
+    return flip_mask
+
+
+def _load_pe_from_file(file_dir):
+    """
+    Load per-channel ML decoding error probabilities from a ``*_pe.txt`` file.
+
+    The on-disk format is one entry per line as ``<index>\\t<probability>``
+    (e.g. produced by the degrading-upgrading quantization of Tal & Vardy).
+    Lines starting with '#' and blank lines are skipped. The returned array
+    is indexed directly by channel index, i.e. ``pe[i] = P_e(i)``.
+
+    Parameters
+    ----------
+    file_dir : str
+        Path to the ``*_pe.txt`` reliability file.
+
+    Returns
+    -------
+    np.ndarray
+        1-D ``float64`` array of length ``N`` where ``arr[i]`` is the ML
+        decoding error probability of the ``i``-th polarized channel.
+    """
+    values = []
+    with open(file_dir, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            parts = line.split()
+            if len(parts) != 2:
+                continue
+            values.append(float(parts[1]))
+    return np.array(values, dtype=np.float64)
+
+
+def union_failure_bound_from_file(file_dir, frozen_vector, sp_positions,
+                                  num_frozen_bits):
+    """
+    Calculate the union upper bound of the frame decoding failure probability.
+
+    The union bound on the frame error probability of a polar code is
+    [Tal & Vardy 2013; Zhou et al. 2022, Eq. (5)]:
+
+    .. math::  \\varepsilon \\leq \\sum_{i \\in \\mathcal{I}} P_e(i)
+
+    where :math:`\\mathcal{I}` is the information set — positions that are
+    **not frozen** (neither effective-frozen nor shortened/punctured) — and
+    :math:`P_e(i)` is the ML decoding error probability of the ``i``-th
+    polarized channel.
+
+    Parameters
+    ----------
+    file_dir : str
+        Path to the channel reliability file (``*_pe.txt`` format, as
+        produced by the degrading-upgrading polar-code construction).
+    frozen_vector : np.ndarray
+        Boolean array of length ``N`` marking frozen positions. Should
+        include **both** sp_positions (shortened+punctured) and effective-
+        frozen positions, i.e. be consistent with the output of
+        :func:`generate_frozen_bits_from_file`.
+    sp_positions : np.ndarray
+        1-D array of off-limits position indices (shortened ∪ punctured).
+        These positions are preset by the protocol (shortened=0, punctured=
+        erased), so they are not counted as leaked syndrome bits.
+    num_frozen_bits : int
+        Number of **effective** (non-sp) frozen bits. Used for consistency
+        validation against ``frozen_vector`` and ``sp_positions``.
+
+    Returns
+    -------
+    float
+        Union upper bound :math:`\\sum_{i \\in \\mathcal{I}} P_e(i)` over
+        the information set.
+
+    Raises
+    ------
+    AssertionError
+        If ``num_frozen_bits`` does not match the effective frozen count
+        derived from ``frozen_vector`` minus ``sp_positions``, or if
+        ``frozen_vector`` length disagrees with the ``*_pe.txt`` file.
+    """
+    pe = _load_pe_from_file(file_dir)
+    N = len(pe)
+
+    frozen_vector = np.asarray(frozen_vector, dtype=bool)
+    sp_positions = np.asarray(sp_positions, dtype=np.int64)
+
+    assert frozen_vector.shape[0] == N, (
+        "frozen_vector length ({}) != N from pe file ({})".format(
+            frozen_vector.shape[0], N)
+    )
+
+    sp_mask = np.zeros(N, dtype=bool)
+    sp_mask[sp_positions] = True
+
+    effective_frozen_count = int((frozen_vector & ~sp_mask).sum())
+    assert effective_frozen_count == num_frozen_bits, (
+        "num_frozen_bits mismatch: frozen_vector has {} effective frozen bits "
+        "(frozen_vector.sum()={}, sp={}), but num_frozen_bits={}.".format(
+            effective_frozen_count, int(frozen_vector.sum()),
+            int(sp_mask.sum()), num_frozen_bits)
+    )
+
+    # frozen_vector from generate_frozen_bits_from_file already includes
+    # sp_positions, so ~frozen_vector would suffice. We AND with ~sp_mask
+    # for robustness against callers who pass a frozen vector that excludes
+    # sp_positions.
+    info_mask = ~frozen_vector & ~sp_mask
+
+    return float(pe[info_mask].sum())
+
+
+def num_frozen_bits_from_union_bound_from_file(file_dir, sp_positions,
+                                               target_failure_rate):
+    """
+    Find the minimal number of effective frozen bits to achieve a target
+    frame failure probability under the union bound.
+
+    Given a target :math:`\\varepsilon_{\\mathrm{target}}`, finds the smallest
+    number of effective (non-sp) frozen bits :math:`K_{\\min}` such that the
+    union bound on the failure probability of the remaining information set
+    satisfies:
+
+    .. math::  \\sum_{i \\in \\mathcal{I}} P_e(i) \\leq \\varepsilon_{\\mathrm{target}}
+
+    where :math:`|\\mathcal{I}| = L - K_{\\min}` and :math:`L` is the number
+    of non-sp (transmitted+info-eligible) positions.
+
+    The optimal frozen-set selection (minimizing :math:`K` for a given
+    :math:`\\varepsilon`) is to freeze the :math:`K` positions with the
+    **highest** :math:`P_e` (least reliable channels), leaving the
+    :math:`L-K` positions with the **lowest** :math:`P_e` as the information
+    set.
+
+    Parameters
+    ----------
+    file_dir : str
+        Path to the channel reliability file (``*_pe.txt`` format). For
+        shortened/punctured polar codes, prefer the files in
+        ``conf/polar/sp-bsc/`` which are computed with
+        shortening/puncturing-aware channel modeling.
+    sp_positions : np.ndarray
+        1-D array of off-limits position indices (shortened ∪ punctured).
+    target_failure_rate : float
+        Upper bound on the frame failure probability to achieve
+        (:math:`\\varepsilon_{\\mathrm{target}}`).
+
+    Returns
+    -------
+    int
+        Minimal number of effective (non-sp) frozen bits required.
+        ``0`` if even with no frozen bits the union bound is below target;
+        ``L`` (all non-sp positions frozen) if the target is too small.
+    """
+    pe = _load_pe_from_file(file_dir)
+    N = len(pe)
+
+    sp_positions = np.asarray(sp_positions, dtype=np.int64)
+    sp_mask = np.zeros(N, dtype=bool)
+    sp_mask[sp_positions] = True
+
+    pe_ns = pe[~sp_mask]
+    L = int(pe_ns.shape[0])
+
+    pe_sorted = np.sort(pe_ns)
+    cumsum = np.cumsum(pe_sorted)
+
+    # side='right' counts cumsum entries that are <= target, which is the
+    # largest K_info satisfying the union bound sum_{j<K_info} pe_sorted[j] <= target.
+    K_info = int(np.searchsorted(cumsum, target_failure_rate, side='right'))
+
+    return L - K_info
+
 
 class shortener(Py_Module):
     '''
