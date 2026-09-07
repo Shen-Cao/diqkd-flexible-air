@@ -41,7 +41,7 @@ print("Remark: The statistical QBER is only for calculating the efficiency in th
 print("        Alice and Bob will only read their own KEY")
 print("\n")
 
-with open('../../data/Alice_key.bin', 'rb') as f: 
+with open('../../data/ion2ion/Alice_key.bin', 'rb') as f:
     data = np.fromfile(f, dtype = np.uint8)
     pass
 
