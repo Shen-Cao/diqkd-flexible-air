@@ -1,0 +1,98 @@
+Log file: ../../log/eat-diqkd-sep/mc_keygen_n10000/air_mc_keygen_ber0.0365_noise0.033115_S187329_P0_L8_n1000_seed41_20261010_033359.txt
+Started at: 2026-10-10 03:33:59.787566
+
+=== ZZ KeyGen AIR MC (Sep, separate IR) ===
+  Calibrated noise BER (point estimate): 0.033115
+  Active assumed BER  : 0.0365
+  Active noise BER    : 0.033115
+  N / L / S / P       : 1048576 / 861247 / 187329 / 0
+  Eff stages          : ['1.0500', '1.1000', '1.3092']
+  Num samples         : 1000
+  SCL L / CRC         : 8 / 32
+  n_threads           : [32, 1]
+  RNG seed            : 41
+
+  [Memory estimate] ~4.5 GB per decoder, 3 stages = ~13.4 GB for decoders alone
+
+Loading polar code: ../../conf/polar/sp-bsc/n20_sp-bsc_ber0.0365_mu40_shortened187329_punctured0.pc
+  H2(assumed) = 0.226008, L*H2 = 194648.7
+  H2(noise)   = 0.209780, L*H2 = 180672.6
+  CRC gain    : 0.000164
+  Eff frozen  : [204349, 214081, 254793]
+  Info bits   : [656898, 647166, 606454]
+  Failure-rate bounds : [224.14399943474965, 25.364396594753156, 1.0150147769507316e-05]
+  Real leaked bits    : [204381, 214113, 254825]
+  Real eff stages     : [1.131223075774805, 1.1850884691990489, 1.4104242580490098]
+
+Building 3-stage pipeline modules (SCL=8) ...
+Binding sockets ...
+
+Starting MC simulation (1000 frames, n_threads=[32, 1]) ...
+
+    Frames |  FE(st0) |  FE(stL) | CASCL(stL) |  Elapsed |  Remaining
+  ----------------------------------------------------------------------
+      1000 |      413 |        0 |          0 | 02:28:48 |   00:00:00
+
+================================================================================
+MC RESULTS
+================================================================================
+
+  Assumed BER: 0.0365  (H2=0.226008, L*H2=194649)
+  Noise BER  : 0.033115  (H2=0.209780, L*H2=180673)
+  CRC size   : 32 bits
+  Code       : N=1048576, L=861247, S=187329, P=0
+
+  --- Stage 0 (224.14399943474965 target, f_cfg=1.0500) ---
+    Union-bound expected FER    : 7.50e-01
+    K_frozen (effective)        : 204349
+    K_info                      : 656898
+    Leaked bits (K_frozen+CRC)  : 204381
+    Efficiency (target, assumed): 1.049999
+    Efficiency (real, noise)    : 1.131223
+    Frames analysed             : 1000
+    Frame errors (dec!=enc)     : 413
+    Frames corrected            : 587
+    FER (n_fe / N)               : 4.1300e-01
+    CASCL failures (CRC mismatch): 413
+
+  --- Stage 1 (25.364396594753156 target, f_cfg=1.1000) ---
+    Union-bound expected FER    : 2.50e-01
+    K_frozen (effective)        : 214081
+    K_info                      : 647166
+    Leaked bits (K_frozen+CRC)  : 214113
+    Efficiency (target, assumed): 1.099997
+    Efficiency (real, noise)    : 1.185088
+    Frames analysed             : 1000
+    Frame errors (dec!=enc)     : 5
+    Frames corrected            : 995
+    FER (n_fe / N)               : 5.0000e-03
+    CASCL failures (CRC mismatch): 5
+
+  --- Stage 2 (1.0150147769507316e-05 target, f_cfg=1.3092) ---
+    Union-bound expected FER    : 1.00e-05
+    K_frozen (effective)        : 254793
+    K_info                      : 606454
+    Leaked bits (K_frozen+CRC)  : 254825
+    Efficiency (target, assumed): 1.309153
+    Efficiency (real, noise)    : 1.410424
+    Frames analysed             : 1000
+    Frame errors (dec!=enc)     : 0
+    Frames corrected            : 1000
+    FER (n_fe / N)               : 0.0000e+00
+    CASCL failures (CRC mismatch): 0
+
+  === Average efficiency breakdown (assumed BER) ===
+  avg_eff = sum_k f_k * (n_fe[k-1] - n_fe[k]) / N, N_init=1000
+    Stage 0: f=1.0500, n_fe_prev=1000, n_fe=413, corrected=587, contrib=0.616350
+    Stage 1: f=1.1000, n_fe_prev=413, n_fe=5, corrected=408, contrib=0.448800
+    Stage 2: f=1.3092, n_fe_prev=5, n_fe=0, corrected=5, contrib=0.006546
+    Final  : f=1.3092, n_fe[last]=0, contrib=0.000000
+
+  Average efficiency (assumed BER) : 1.071696
+  Average efficiency (noise BER)   : 1.154596
+
+  Final FER (frame errors, stage 2) : 0.0000e+00
+  Final FER (CASCL, stage 2)        : 0.0000e+00
+
+Total elapsed: 2:34:48.859819
+Log file: ../../log/eat-diqkd-sep/mc_keygen_n10000/air_mc_keygen_ber0.0365_noise0.033115_S187329_P0_L8_n1000_seed41_20261010_033359.txt

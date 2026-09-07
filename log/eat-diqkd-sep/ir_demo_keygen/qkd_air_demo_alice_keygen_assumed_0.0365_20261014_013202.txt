@@ -1,0 +1,21 @@
+Log file: ../../log/eat-diqkd-sep/ir_demo_keygen/qkd_air_demo_alice_keygen_assumed_0.0365_20261014_013202.txt
+Server started at http://localhost:8012
+HTTP communication ready
+# # # # # # # # # # # # # # # # 
+(0:00:00.010413) Reconciliation Phase — Alice (Keygen)
+# # # # # # # # # # # # # # # # 
+Alice: Start the reconciliation phase
+(0:00:05.013928) Alice: Send CRC tag
+Total 32 bits public
+
+(0:00:10.017956) Stage 1/3
+Alice: Send 204349 appended frozen bits
+CRC check result: [[0]]
+SUCCESS at stage 1
+Assumed efficiency: 1.050005
+Real efficiency:    1.115410
+Alice sifted key saved: ../../log/eat-diqkd-sep/ir_demo_keygen/qkd_air_demo_alice_keygen_assumed_0.0365_20261014_013202_alice.npy (861247 bits)
+Server stopped
+
+Total elapsed: 0:01:52.811705
+Log file: ../../log/eat-diqkd-sep/ir_demo_keygen/qkd_air_demo_alice_keygen_assumed_0.0365_20261014_013202.txt

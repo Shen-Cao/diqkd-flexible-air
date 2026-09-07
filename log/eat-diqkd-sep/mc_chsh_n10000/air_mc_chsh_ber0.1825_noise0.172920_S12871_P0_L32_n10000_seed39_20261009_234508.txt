@@ -1,0 +1,96 @@
+Log file: ../../log/eat-diqkd-sep/mc_chsh_n10000/air_mc_chsh_ber0.1825_noise0.172920_S12871_P0_L32_n10000_seed39_20261009_234508.txt
+Started at: 2026-10-09 23:45:08.355862
+
+=== CHSH AIR MC (Sep, separate IR) ===
+  Calibrated noise BER (point estimate): 0.172920
+  Active assumed BER  : 0.1825
+  Active noise BER    : 0.172920
+  N / L / S / P       : 32768 / 19897 / 12871 / 0
+  Eff stages          : ['1.0500', '1.1000', '1.1988']
+  Num samples         : 10000
+  SCL L / CRC         : 32 / 32
+  n_threads           : [100, 1]
+  RNG seed            : 39
+
+Loading polar code: ../../conf/polar/sp-bsc/n15_sp-bsc_ber0.1825_mu100_shortened12871_punctured0.pc
+  H2(assumed) = 0.685516, L*H2 = 13639.7
+  H2(noise)   = 0.664341, L*H2 = 13218.4
+  CRC gain    : 0.002346
+  Eff frozen  : [14289, 14971, 16319]
+  Info bits   : [5608, 4926, 3578]
+  Failure-rate bounds : [12.934394672942219, 0.7126067264253975, 1.4335322088056588e-05]
+  Real leaked bits    : [14321, 15003, 16351]
+  Real eff stages     : [1.0834151956663443, 1.1350099979458252, 1.2369891672606939]
+
+Building 3-stage pipeline modules (SCL=32) ...
+Binding sockets ...
+
+Starting MC simulation (10000 frames, n_threads=[100, 1]) ...
+
+    Frames |  FE(st0) |  FE(stL) | CASCL(stL) |  Elapsed |  Remaining
+  ----------------------------------------------------------------------
+     10000 |      553 |        0 |          0 | 00:52:31 |   00:00:00
+
+================================================================================
+MC RESULTS
+================================================================================
+
+  Assumed BER: 0.1825  (H2=0.685516, L*H2=13640)
+  Noise BER  : 0.172920  (H2=0.664341, L*H2=13218)
+  CRC size   : 32 bits
+  Code       : N=32768, L=19897, S=12871, P=0
+
+  --- Stage 0 (12.934394672942219 target, f_cfg=1.0500) ---
+    Union-bound expected FER    : 7.50e-01
+    K_frozen (effective)        : 14289
+    K_info                      : 5608
+    Leaked bits (K_frozen+CRC)  : 14321
+    Efficiency (target, assumed): 1.049949
+    Efficiency (real, noise)    : 1.083415
+    Frames analysed             : 10000
+    Frame errors (dec!=enc)     : 553
+    Frames corrected            : 9447
+    FER (n_fe / N)               : 5.5300e-02
+    CASCL failures (CRC mismatch): 553
+
+  --- Stage 1 (0.7126067264253975 target, f_cfg=1.1000) ---
+    Union-bound expected FER    : 2.50e-01
+    K_frozen (effective)        : 14971
+    K_info                      : 4926
+    Leaked bits (K_frozen+CRC)  : 15003
+    Efficiency (target, assumed): 1.099950
+    Efficiency (real, noise)    : 1.135010
+    Frames analysed             : 10000
+    Frame errors (dec!=enc)     : 0
+    Frames corrected            : 10000
+    FER (n_fe / N)               : 0.0000e+00
+    CASCL failures (CRC mismatch): 0
+
+  --- Stage 2 (1.4335322088056588e-05 target, f_cfg=1.1988) ---
+    Union-bound expected FER    : 1.00e-05
+    K_frozen (effective)        : 16319
+    K_info                      : 3578
+    Leaked bits (K_frozen+CRC)  : 16351
+    Efficiency (target, assumed): 1.198780
+    Efficiency (real, noise)    : 1.236989
+    Frames analysed             : 10000
+    Frame errors (dec!=enc)     : 0
+    Frames corrected            : 10000
+    FER (n_fe / N)               : 0.0000e+00
+    CASCL failures (CRC mismatch): 0
+
+  === Average efficiency breakdown (assumed BER) ===
+  avg_eff = sum_k f_k * (n_fe[k-1] - n_fe[k]) / N, N_init=10000
+    Stage 0: f=1.0500, n_fe_prev=10000, n_fe=553, corrected=9447, contrib=0.991935
+    Stage 1: f=1.1000, n_fe_prev=553, n_fe=0, corrected=553, contrib=0.060830
+    Stage 2: f=1.1988, n_fe_prev=0, n_fe=0, corrected=0, contrib=0.000000
+    Final  : f=1.1988, n_fe[last]=0, contrib=0.000000
+
+  Average efficiency (assumed BER) : 1.052765
+  Average efficiency (noise BER)   : 1.086268
+
+  Final FER (frame errors, stage 2) : 0.0000e+00
+  Final FER (CASCL, stage 2)        : 0.0000e+00
+
+Total elapsed: 0:55:07.183921
+Log file: ../../log/eat-diqkd-sep/mc_chsh_n10000/air_mc_chsh_ber0.1825_noise0.172920_S12871_P0_L32_n10000_seed39_20261009_234508.txt

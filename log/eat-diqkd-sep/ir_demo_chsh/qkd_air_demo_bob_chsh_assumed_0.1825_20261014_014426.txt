@@ -1,0 +1,24 @@
+Log file: ../../log/eat-diqkd-sep/ir_demo_chsh/qkd_air_demo_bob_chsh_assumed_0.1825_20261014_014426.txt
+Server started at http://localhost:8003
+HTTP communication ready
+# # # # # # # # # # # # # # # # 
+(0:00:00.013175) Reconciliation Phase — Bob (CHSH)
+# # # # # # # # # # # # # # # # 
+Bob: Waiting for Alice to start...
+Bob: Received start signal
+
+(0:00:13.742423) Bob: Waiting for CRC tag...
+CRC tag received: [[0 1 1 0 0 0 1 1 0 1 1 1 1 0 1 0 0 0 0 0 1 1 0 0 1 1 1 1 1 0 0 1]]
+
+(0:00:18.756051) Stage 1/3
+Bob: Waiting for appended frozen bits...
+Bob: Received 14289 bits
+Bob: decode 2.5s, status=0
+Bob: CRC PASS at stage 1
+Assumed efficiency: 1.050023
+Real efficiency:    1.080284
+Bob corrected key saved: ../../log/eat-diqkd-sep/ir_demo_chsh/qkd_air_demo_bob_chsh_assumed_0.1825_20261014_014426_bob_corrected.npy (19897 bits)
+Server stopped
+
+Total elapsed: 0:00:32.154714
+Log file: ../../log/eat-diqkd-sep/ir_demo_chsh/qkd_air_demo_bob_chsh_assumed_0.1825_20261014_014426.txt

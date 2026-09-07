@@ -1,0 +1,24 @@
+Log file: ../../log/eat-diqkd-sep/ir_demo_keygen/qkd_air_demo_bob_keygen_assumed_0.0365_20261014_013150.txt
+Server started at http://localhost:8003
+HTTP communication ready
+# # # # # # # # # # # # # # # # 
+(0:00:00.012758) Reconciliation Phase — Bob (Keygen)
+# # # # # # # # # # # # # # # # 
+Bob: Waiting for Alice to start...
+Bob: Received start signal
+
+(0:00:11.533584) Bob: Waiting for CRC tag...
+CRC tag received: [[1 1 0 1 0 1 0 1 1 1 1 1 0 0 1 1 1 0 1 0 0 1 0 1 0 0 1 0 0 1 0 1]]
+
+(0:00:16.497817) Stage 1/3
+Bob: Waiting for appended frozen bits...
+Bob: Received 204349 bits
+Bob: decode 92.1s, status=0
+Bob: CRC PASS at stage 1
+Assumed efficiency: 1.050005
+Real efficiency:    1.115410
+Bob corrected key saved: ../../log/eat-diqkd-sep/ir_demo_keygen/qkd_air_demo_bob_keygen_assumed_0.0365_20261014_013150_bob_corrected.npy (861247 bits)
+Server stopped
+
+Total elapsed: 0:02:04.227765
+Log file: ../../log/eat-diqkd-sep/ir_demo_keygen/qkd_air_demo_bob_keygen_assumed_0.0365_20261014_013150.txt
