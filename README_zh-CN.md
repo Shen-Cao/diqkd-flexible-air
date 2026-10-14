@@ -3,6 +3,8 @@
 [简体中文](README_zh-CN.md) | [English](README.md)
 
 > **请注意：** 本文件通过 DeepSeek V4.1 Flash 驱动的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 直接由 [README.md](README.md) 翻译而来。
+>
+> [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
 
 基于截短极化码的设备无关量子密钥分发（DIQKD）独立信息协调（IR）
 
@@ -182,6 +184,8 @@ python qkd-air-demo-alice.py   # 终端 2
 
 如果您发现此仓库对您的工作有用，请引用我们的论文：
 
+### 采用量子互补性（QC）安全性分析的 DIQKD 信息协调（AIR）
+
 ```bibtex
 @article{
     nature_2026,
@@ -190,13 +194,18 @@ python qkd-air-demo-alice.py   # 终端 2
     ISSN={1476-4687},
     DOI={10.1038/s41586-026-10177-4},
     journal={Nature},
+    volume={652},
+    number={8108},
     publisher={Nature Publishing Group},
     author={Liu, Wen-Zhao and Zhou, Ya-Bin and Chen, Jiu-Peng and Wang, Bin and Teng, Ao and Han, Xiao-Wen and Liu, Guang-Cheng and Zhang, Zhi-Jiong and Yang, Yi and Liu, Feng-Guang and Xue, Chao-Hui and Yang, Bo-Wen and Yang, Jin and Zeng, Chao and Pan, Du-Ruo and Zheng, Ming-Yang and Zhang, Xingjian and Cao, Shen and Zhen, Yi-Zheng and Xiao, You and Li, Hao and You, Lixing and Ma, Xiongfeng and Zhao, Qi and Xu, Feihu and Wang, Ye and Wan, Yong and Zhang, Qiang and Pan, Jian-Wei},
     year={2026},
-    month=feb,
-    pages={1–7},
+    pages={51–57},
 }
 ```
+
+<!-- ### 采用 EAT 安全性分析的 DIQKD 独立信息协调（separate IR） -->
+
+<!-- 待发表 -->
 
 ## 许可证
 

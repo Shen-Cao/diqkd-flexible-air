@@ -197,6 +197,8 @@ with `--seed 39`.
 
 If you find this repo useful for your work, please cite our paper:
 
+### AIR for DIQKD with Quantum Complementarity (QC) Security analysis
+
 ```bibtex
 @article{
     nature_2026,
@@ -205,13 +207,18 @@ If you find this repo useful for your work, please cite our paper:
     ISSN={1476-4687},
     DOI={10.1038/s41586-026-10177-4},
     journal={Nature},
+    volume={652},
+    number={8108},
     publisher={Nature Publishing Group},
     author={Liu, Wen-Zhao and Zhou, Ya-Bin and Chen, Jiu-Peng and Wang, Bin and Teng, Ao and Han, Xiao-Wen and Liu, Guang-Cheng and Zhang, Zhi-Jiong and Yang, Yi and Liu, Feng-Guang and Xue, Chao-Hui and Yang, Bo-Wen and Yang, Jin and Zeng, Chao and Pan, Du-Ruo and Zheng, Ming-Yang and Zhang, Xingjian and Cao, Shen and Zhen, Yi-Zheng and Xiao, You and Li, Hao and You, Lixing and Ma, Xiongfeng and Zhao, Qi and Xu, Feihu and Wang, Ye and Wan, Yong and Zhang, Qiang and Pan, Jian-Wei},
     year={2026},
-    month=feb,
-    pages={1–7},
+    pages={51–57},
 }
 ```
+
+<!-- ### Separate AIR for DIQKD with EAT Security analysis -->
+
+<!-- To be published -->
 
 ## License
 
